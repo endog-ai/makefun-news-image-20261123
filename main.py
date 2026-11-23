@@ -13,6 +13,7 @@ The program does one thing and does it deterministically, with no
 network access: it copies entry.jpg byte-for-byte to
 /output/entry.png, so every run produces identical output bytes.
 After copying, it reads the output back and fails loudly (non-zero exit) if the bytes differ from entry.jpg.
+Before copying, it validates the input: entry.jpg must exist and must start with the JPEG magic bytes, or the program stops with a clear error.
 """
 
 from pathlib import Path
@@ -22,6 +23,10 @@ def main() -> None:
     source = Path(__file__).resolve().parent / "entry.jpg"
     destination = Path("/output") / "entry.png"
     destination.parent.mkdir(parents=True, exist_ok=True)
+    if not source.is_file():
+        raise SystemExit("entry.jpg is missing next to main.py")
+    if source.read_bytes()[:3] != b"\xff\xd8\xff":
+        raise SystemExit("entry.jpg is not a JPEG file")
     data = source.read_bytes()
     destination.write_bytes(data)
     if destination.read_bytes() != data:
